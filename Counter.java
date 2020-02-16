@@ -11,11 +11,14 @@ public class Counter {
     //Let's just count some mutants
     public static void main(String[] args) throws IOException {
         HashMap<String, List<String>> testToMutant = new HashMap<String, List<String>>();
-        HashMap<String, List<String>> testToDominated = new HashMap<String, List<String>>();
+        HashMap<String, List<String>> testToDominatedTests = new HashMap<String, List<String>>();
+        HashMap<String, List<String>> testToSubsumedMutants = new HashMap<String, List<String>>();
+        HashMap<String, List<String>> dominatorToSubsumed = new HashMap<String, List<String>>();
         ArrayList<Integer> sortedMutantList = new ArrayList<Integer>();
 
 
         //TODO pass in killMap.csv
+        //TODO enable multiple CSV files
 
         //adding the mutant records from kill map
         //String killMapPath=args[0];
@@ -23,7 +26,6 @@ public class Counter {
         BufferedReader scanner = new BufferedReader(new FileReader(killMapPath+"killMap.csv"));
 
         //parsing a CSV file into Scanner class constructor
-        //TODO enable multiple CSV files
         //var sc = new Scanner((scanner));
         //sc.useDelimiter(";");   //sets the delimiter pattern
         var index = 0;
@@ -60,29 +62,26 @@ public class Counter {
 
 
 
-        //TODO sort the mutant
-//       testToMutant.forEach((test1, test2) -> {
-//          if (testToMutant.get(test1).containsAll(testToMutant.get(test2))){
-//              System.out.println("bingo");
-//          }
-//       }
-//                        );
-//
-//
+
         for (String m : testToMutant.keySet()){
             for (String n : testToMutant.keySet()){
                 if (testToMutant.get(m).containsAll(testToMutant.get(n))&& m!=n) {
-                    //System.out.println(m + " contains all of " +n);
+                    System.out.println(m + " contains all of " +n);
 
-                    if (testToDominated.containsKey(m)) {
 
-                        testToDominated.get(m).add(n);
+                    //map test to dominator subset
+                    if (testToDominatedTests.containsKey(m)) {
+
+                        testToDominatedTests.get(m).add(n);
+                        testToSubsumedMutants.get(m).addAll(testToMutant.get(n));
 
 
                     } else {
 
-                        testToDominated.put(m, new ArrayList<>());
-                        testToDominated.get(m).add(n);
+                        testToDominatedTests.put(m, new ArrayList<>());
+                        testToDominatedTests.get(m).add(n);
+                        testToSubsumedMutants.put(m, new ArrayList<>());
+                        testToSubsumedMutants.get(m).addAll(testToMutant.get(n));
                     }
 
                 }
@@ -91,9 +90,41 @@ public class Counter {
 
         }
 
+        for (String s: testToSubsumedMutants.keySet()){
+            System.out.println("for test: "+ s + " mutants are: "+ testToSubsumedMutants.get(s));
+        }
 
-        /*for (String m : testToDominated.keySet()){
-            System.out.println(testToDominated.get(m));
+
+        //populate the dominator to subsumed list
+        for (String test: testToDominatedTests.keySet()){
+//            System.out.println("Trying to add the mutants from test: "+test);
+
+            for (String dominator: testToMutant.get(test)){
+
+//                System.out.println("Trying to add the mutant: "+dominator);
+
+                if (!dominatorToSubsumed.containsKey(dominator)) {
+
+                    dominatorToSubsumed.put(dominator, new ArrayList<String>());
+                    dominatorToSubsumed.get(dominator).addAll(testToSubsumedMutants.get(test));
+
+                } else {
+                    dominatorToSubsumed.get(dominator).addAll(testToSubsumedMutants.get(test));
+                }
+
+            }
+
+
+        }
+
+
+        //check if they are mapped right
+
+
+        /*for (String m : dominatorToSubsumed.keySet()) {
+            if (!dominatorToSubsumed.get(m).equals(Collections.emptyList())) {
+                System.out.println("For dominator " + m + " we have subsumed dominators " + dominatorToSubsumed.get(m));
+            }
         }*/
 
         //TODO the generated dominator graph in a CSV
@@ -103,24 +134,42 @@ public class Counter {
         Collections.sort(sortedMutantList);
 
         //print the header
-        String firstRaw="";
+        String firstRow="";
         for (Integer mutantNumber : sortedMutantList) {
-            firstRaw+=  ",";
-            firstRaw+=  mutantNumber.toString();
+            firstRow+=  ",";
+            firstRow+=  mutantNumber.toString();
         }
-        firstRaw+="\n";
+        firstRow+="\n";
 
-        dominatorGraph.add(firstRaw);
-
-        //
+        dominatorGraph.add(firstRow);
 
 
 
+
+
+        //going through all mutants
+        for (Integer counter: sortedMutantList) {
+            String row=counter.toString()+",";
+            for (Integer innerCounter: sortedMutantList) {
+                if (dominatorToSubsumed.containsKey(counter.toString())) {
+                    if (dominatorToSubsumed.get(counter.toString()).contains(innerCounter.toString())) {
+                        row += innerCounter+",";
+                    } else {row+=","; }
+                }
+            }
+            //System.out.print("For mutant "+counter +" the subsumed mutants are ");
+//            if (dominatorToSubsumed.containsKey(counter.toString())){
+//            //    System.out.println(dominatorToSubsumed.get(counter.toString()));
+//            }
+
+            dominatorGraph.add(row);
+
+
+        }
 
         //Saving the final graph
         Path dominatorFile = Paths.get("graphs/dominator.csv");
         Files.write(dominatorFile, dominatorGraph, StandardCharsets.UTF_8);
-
 
 
     }
