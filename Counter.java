@@ -11,11 +11,9 @@ public class Counter {
 
     //Let's just count some mutants
     public static void main(String[] args) throws IOException {
-        HashMap<String, Set<String>> testToMutant = new HashMap<String, Set<String>>();
         HashMap<String, Set<String>> testToDominatedTests = new HashMap<String, Set<String>>();
         HashMap<String, Set<String>> testToSubsumedMutants = new HashMap<String, Set<String>>();
         HashMap<String, Set<String>> dominatorToSubsumed = new HashMap<String, Set<String>>();
-        ArrayList<Integer> sortedMutantList = new ArrayList<Integer>();
 
 
         //TODO pass in killMap.csv
@@ -24,44 +22,7 @@ public class Counter {
         //adding the mutant records from kill map
         //String killMapPath=args[0];
         String killMapPath="../tailored-mutants-data/results/Lang/3/killmatrix/natural-mutants/non-triggering/";
-        BufferedReader scanner = new BufferedReader(new FileReader(killMapPath+"killMap.csv"));
-
-        //parsing a CSV file into Scanner class constructor
-        //var sc = new Scanner((scanner));
-        //sc.useDelimiter(";");   //sets the delimiter pattern
-        var index = 0;
-        String lineTracker=scanner.readLine();
-        while ((lineTracker = scanner.readLine()) != null)  //returns a boolean value
-        {
-
-
-            String[] lineKeeper = lineTracker.split(",");
-
-            sortedMutantList.add(Integer.parseInt(lineKeeper[1]));
-
-            if (testToMutant.containsKey(lineKeeper[0])) {
-
-                testToMutant.get(lineKeeper[0]).add(lineKeeper[1]);
-
-
-            } else {
-                Set<String> setter= new HashSet<String>();
-                testToMutant.put(lineKeeper[0], setter);
-                testToMutant.get(lineKeeper[0]).add(lineKeeper[1]);
-            }
-
-
-
-        }
-
-        scanner.close();
-        //closes the scanner
-
-
-
-
-
-
+        Map<String, Set<String>> testToMutant = readKillMap(killMapPath);
 
 
         for (String m : testToMutant.keySet()){
@@ -133,8 +94,10 @@ public class Counter {
         ArrayList<String> dominatorGraph = new ArrayList<String>();
         //Print all the mutants(including non-dominated ones)
         //sort mutants alphabetically
-        Collections.sort(sortedMutantList);
-        ArrayList<Integer> sortedMutantListFinal = (ArrayList<Integer>) sortedMutantList.stream()
+        List<Integer> sortedMutantListFinal = testToMutant.values().stream()
+                .flatMap(valueSet -> valueSet.stream())
+                .map(valueAsString -> Integer.parseInt(valueAsString))
+                .sorted()
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -175,5 +138,34 @@ public class Counter {
         Files.write(dominatorFile, dominatorGraph, StandardCharsets.UTF_8);
 
 
+    }
+
+    /**
+     * Reads a `killMap.csv`-formatted file as a map from tests to mutants killed.
+     * @param path The filesystem path to the file to read.
+     * @return A mapping from test IDs (as strings) to the set of mutants kill (as strings).
+     */
+    private static HashMap<String, Set<String>> readKillMap(String path) throws IOException {
+        HashMap<String, Set<String>> testToMutant = new HashMap<String, Set<String>>();
+        BufferedReader scanner = new BufferedReader(new FileReader(path +"killMap.csv"));
+
+        //parsing a CSV file into Scanner class constructor
+        //var sc = new Scanner((scanner));
+        //sc.useDelimiter(";");   //sets the delimiter pattern
+        String lineTracker=scanner.readLine();
+        while ((lineTracker = scanner.readLine()) != null)  //returns a boolean value
+        {
+            String[] lineKeeper = lineTracker.split(",");
+            if (testToMutant.containsKey(lineKeeper[0])) {
+                testToMutant.get(lineKeeper[0]).add(lineKeeper[1]);
+            } else {
+                Set<String> setter= new HashSet<String>();
+                testToMutant.put(lineKeeper[0], setter);
+                testToMutant.get(lineKeeper[0]).add(lineKeeper[1]);
+            }
+        }
+
+        scanner.close();
+        return testToMutant;
     }
 }
