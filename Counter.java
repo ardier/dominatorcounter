@@ -77,7 +77,7 @@ public class Counter {
 
 
     private static HashMap<String, Set<String>> domToSub(Map<String, Set<String>> mutantToTestMethod) {
-        HashMap<String, Set<String>> domToSub = new HashMap<String, Set<String>>();
+        HashMap<String, Set<String>> domToSub = new HashMap<>();
         for (String m : mutantToTestMethod.keySet()) {
             for (String n : mutantToTestMethod.keySet()) {
                 if (mutantToTestMethod.get(m).containsAll(mutantToTestMethod.get(n))) {
@@ -96,7 +96,7 @@ public class Counter {
      * Reads a mapping of mutants to tests failed
      *
      * @param mutantToTest A map from mutants to tests failed
-     * to the set of mutants subsumed (as strings).
+     *                     to the set of mutants subsumed (as strings).
      * @return a list of all mutant IDs (as Integers) sorted in order
      */
     private static List<String> sortMutants(Map<String, Set<String>> mutantToTest) {
@@ -122,7 +122,7 @@ public class Counter {
                                Map<String, Set<String>> dominatorToSubsumedMethod,
                                Path[] dominatorFile) throws IOException {
 
-        ArrayList<String> dominatorGraph = new ArrayList<String>();
+        ArrayList<String> dominatorGraph = new ArrayList<>();
 
         //print the header
         String firstRow = ",";
