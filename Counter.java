@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * A Counter maps dominator mutants to subsumed mutants exports the outcome into a CSV file
@@ -27,7 +28,8 @@ public class Counter {
         Map<String, Set<String>> mutantToTest = readKillMap(killMapPath);
 
         //sort mutants alphabetically
-        List<String> sortedMutantList = sortMutants(mutantToTest);
+        List<Integer> sortedMutantList = sortMutants(mutantToTest);
+
 
         //map dominator mutants to subsumed mutants
         Map<String, Set<String>> domToSub = domToSub(mutantToTest);
@@ -99,10 +101,18 @@ public class Counter {
      *                     to the set of mutants subsumed (as strings).
      * @return a list of all mutant IDs (as Integers) sorted in order
      */
-    private static List<String> sortMutants(Map<String, Set<String>> mutantToTest) {
-        List<String> sortedMutantList = new ArrayList<>(mutantToTest.keySet());
-        sortedMutantList.sort(Comparator.naturalOrder());
+    private static List<Integer> sortMutants(Map<String, Set<String>> mutantToTest) {
+        //List<String> sortedMutantList = new ArrayList<>(mutantToTest.keySet());
+        //sortedMutantList.sort(Comparator.naturalOrder());
+        List<Integer> sortedMutantList = mutantToTest.keySet().stream()
+                .map(valueAsString -> Integer.parseInt(valueAsString))
+                .sorted()
+                .distinct()
+                .collect(Collectors.toList());
         return sortedMutantList;
+
+
+
     }
 
 
@@ -118,7 +128,7 @@ public class Counter {
      * @param dominatorFile             an array of project information used to name the exported dominator
      *                                  graph
      */
-    private static void export(List<String> sortedMutantListFinal,
+    private static void export(List<Integer> sortedMutantListFinal,
                                Map<String, Set<String>> dominatorToSubsumedMethod,
                                Path[] dominatorFile) throws IOException {
 
@@ -126,9 +136,9 @@ public class Counter {
 
         //print the header
         String firstRow = ",";
-        for (String mutantNumber : sortedMutantListFinal) {
+        for (Integer mutantNumber : sortedMutantListFinal) {
 
-            firstRow += mutantNumber;
+            firstRow += mutantNumber.toString();
             firstRow += ",";
         }
 
@@ -137,12 +147,12 @@ public class Counter {
 
 
         //going through all mutants
-        for (String counter : sortedMutantListFinal) {
+        for (Integer counter : sortedMutantListFinal) {
             String row = counter + ",";
-            for (String innerCounter : sortedMutantListFinal) {
-                if (dominatorToSubsumedMethod.containsKey(counter)) {
-                    if (dominatorToSubsumedMethod.get(counter).contains(innerCounter)) {
-                        row += innerCounter + ",";
+            for (Integer innerCounter : sortedMutantListFinal) {
+                if (dominatorToSubsumedMethod.containsKey(counter.toString())) {
+                    if (dominatorToSubsumedMethod.get(counter.toString()).contains(innerCounter.toString())) {
+                        row += innerCounter.toString() + ",";
                     } else {
                         row += ",";
                     }
