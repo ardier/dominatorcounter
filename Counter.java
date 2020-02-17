@@ -112,7 +112,6 @@ public class Counter {
         return sortedMutantList;
 
 
-
     }
 
 
