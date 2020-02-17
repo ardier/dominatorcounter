@@ -5,8 +5,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
 import java.util.*;
-import java.util.stream.Collectors;
 
+/**
+ * A Counter maps dominator mutants to subsumed mutants exports the outcome into a CSV file
+ */
 public class Counter {
 
     //Let's just count some mutants
@@ -22,65 +24,28 @@ public class Counter {
         //Project/Version/Trigger/
         Path[] dominatorFile = {Paths.get(args[1]), Paths.get(args[2]), Paths.get(args[3])};
 
-        Map<String, Set<String>> mutantToTest = readKillMap2(killMapPath);
-        //Map<String, Set<String>> testToMutant = readKillMap(killMapPath);
+        Map<String, Set<String>> mutantToTest = readKillMap(killMapPath);
 
-        List<String> sortedMutantList = sortMutants(mutantToTest);
         //sort mutants alphabetically
-        //List<Integer> sortedMutantListFinal = mutantSort(testToMutant);
+        List<String> sortedMutantList = sortMutants(mutantToTest);
 
-
-        //Map<String, Set<String>> testToSubsumedMutants = testToSubsumed(testToMutant);
-
-        Map<String, Set<String>> domToSub = domToSub(testToMutant);
-        //populate the dominator to subsumed list
-        //Map<String, Set<String>> dominatorToSubsumed = dominatorMap(testToSubsumedMutants, testToMutant);
+        //map dominator mutants to subsumed mutants
+        Map<String, Set<String>> domToSub = domToSub(mutantToTest);
 
         //printing the output
-        export(sortedMutantListFinal, dominatorToSubsumed, dominatorFile);
+        export(sortedMutantList, domToSub, dominatorFile);
 
     }
+
 
     /**
      * Reads a `killMap.csv`-formatted file as a map from tests to mutants killed.
      *
      * @param path The filesystem path to the file to read.
      * @return A mapping from test IDs (as strings) to the set of mutants kill (as strings).
-     * @requires passed in map and it's member set should not be empty
      */
     private static HashMap<String, Set<String>> readKillMap(String path) throws IOException {
-        HashMap<String, Set<String>> testToMutant = new HashMap<String, Set<String>>();
-        BufferedReader scanner = new BufferedReader(new FileReader(path));
-
-        //parsing a CSV file into Scanner class constructor
-        //var sc = new Scanner((scanner));
-        //sc.useDelimiter(";");   //sets the delimiter pattern
-        String lineTracker = scanner.readLine();
-        while ((lineTracker = scanner.readLine()) != null)  //returns a boolean value
-        {
-            String[] lineKeeper = lineTracker.split(",");
-            if (testToMutant.containsKey(lineKeeper[0])) {
-                testToMutant.get(lineKeeper[0]).add(lineKeeper[1]);
-            } else {
-                Set<String> setter = new HashSet<String>();
-                testToMutant.put(lineKeeper[0], setter);
-                testToMutant.get(lineKeeper[0]).add(lineKeeper[1]);
-            }
-        }
-
-        scanner.close();
-        return testToMutant;
-    }
-
-    /**
-     * Reads a `killMap.csv`-formatted file as a map from tests to mutants killed.
-     *
-     * @param path The filesystem path to the file to read.
-     * @return A mapping from test IDs (as strings) to the set of mutants kill (as strings).
-     * @requires passed in map and it's member set should not be empty
-     */
-    private static HashMap<String, Set<String>> readKillMap2(String path) throws IOException {
-        HashMap<String, Set<String>> mutantToTest = new HashMap<String, Set<String>>();
+        HashMap<String, Set<String>> mutantToTest = new HashMap<>();
         BufferedReader scanner = new BufferedReader(new FileReader(path));
 
         //parsing a CSV file into Scanner class constructor
@@ -93,7 +58,7 @@ public class Counter {
             if (mutantToTest.containsKey(lineKeeper[1])) {
                 mutantToTest.get(lineKeeper[1]).add(lineKeeper[0]);
             } else {
-                Set<String> setter = new HashSet<String>();
+                Set<String> setter = new HashSet<>();
                 mutantToTest.put(lineKeeper[1], setter);
                 mutantToTest.get(lineKeeper[1]).add(lineKeeper[0]);
             }
@@ -104,47 +69,18 @@ public class Counter {
     }
 
     /**
-     * Reads a mapping of tests to mutants killed
+     * Reads a mapping of mutants to tests failed for those mutants
      *
-     * @param testToMutant A map from tests to mutants killed
-     * @requires passed in map and it's member set should not be empty
-     * @returns a mapping from test IDs (as Strings) to the set of mutants subsumed (as strings).
+     * @param mutantToTestMethod A map from mutants to tests failed
+     * @return a mapping from dominator mutant IDs (as Strings) to the set of mutants subsumed (as strings).
      */
-    private static HashMap<String, Set<String>> testToSubsumed(Map<String, Set<String>> testToMutant) {
-        HashMap<String, Set<String>> testToSubsumedMutantsMethod = new HashMap<String, Set<String>>();
-
-        for (String m : testToMutant.keySet()) {
-            for (String n : testToMutant.keySet()) {
-                if (testToMutant.get(m).containsAll(testToMutant.get(n)) && m != n) {
-                    System.out.println(m + " contains all of " + n);
-
-                    //map test to dominator subset
-                    if (testToSubsumedMutantsMethod.containsKey(m)) {
-
-                        testToSubsumedMutantsMethod.get(m).addAll(testToMutant.get(n));
 
 
-                    } else {
-                        Set<String> setter = new HashSet<String>();
-                        Set<String> setter2 = new HashSet<String>();
-                        testToSubsumedMutantsMethod.put(m, setter2);
-                        testToSubsumedMutantsMethod.get(m).addAll(testToMutant.get(n));
-                    }
-
-                }
-
-            }
-
-        }
-
-        return testToSubsumedMutantsMethod;
-    }
-
-    private static HashMap<String, Set<String>> domToSub(Map<String, Set<String>> mutatnToTestMethod) {
+    private static HashMap<String, Set<String>> domToSub(Map<String, Set<String>> mutantToTestMethod) {
         HashMap<String, Set<String>> domToSub = new HashMap<String, Set<String>>();
-        for (String m : mutatnToTestMethod.keySet()) {
-            for (String n : mutatnToTestMethod.keySet()) {
-                if (mutatnToTestMethod.get(m).containsAll(mutatnToTestMethod.get(n))) {
+        for (String m : mutantToTestMethod.keySet()) {
+            for (String n : mutantToTestMethod.keySet()) {
+                if (mutantToTestMethod.get(m).containsAll(mutantToTestMethod.get(n))) {
                     if (!domToSub.containsKey(m)) {
                         domToSub.put(m, new HashSet<>());
                     }
@@ -155,77 +91,19 @@ public class Counter {
         return domToSub;
     }
 
-    /**
-     * Reads a mapping of tests to subsumed mutants and a mapping of tests to all mutants
-     * to the set of mutants subsumed (as strings).
-     *
-     * @param testToSubsumedMutantsMethod A map from tests to subsumed Mutants
-     * @param testToMutantMethod          A map from tests to mutants killed
-     * @returns a mapping from dominator mutant IDs (as Strings)
-     * @requires passed in maps and their member sets should not be empty
-     */
-    private static HashMap<String,
-            Set<String>> dominatorMap(Map<String, Set<String>> testToSubsumedMutantsMethod,
-                                      Map<String, Set<String>> testToMutantMethod) {
-        HashMap<String, Set<String>> dominatorToSubsumedMethod = new HashMap<String, Set<String>>();
-
-        for (String test : testToSubsumedMutantsMethod.keySet()) {
-            //System.out.println("Trying to add the mutants from test: "+test);
-
-            for (String dominator : testToMutantMethod.get(test)) {
-
-                //System.out.println("Trying to add the mutant: "+dominator);
-
-                if (!dominatorToSubsumedMethod.containsKey(dominator)) {
-                    Set<String> setter = new HashSet<String>();
-                    dominatorToSubsumedMethod.put(dominator, setter);
-                    dominatorToSubsumedMethod.get(dominator)
-                            .addAll(testToSubsumedMutantsMethod.get(test));
-
-                } else {
-                    dominatorToSubsumedMethod.get(dominator)
-                            .addAll(testToSubsumedMutantsMethod.get(test));
-                }
-
-            }
-
-
-        }
-        return dominatorToSubsumedMethod;
-    }
 
     /**
-     * Reads a mapping of tests to all mutants
+     * Reads a mapping of mutants to tests failed
      *
-     * @param testToMutantMethod A map from tests to mutants killed
-     * @requires passed in map and its member set should not be empty
+     * @param mutantToTest A map from mutants to tests failed
      * to the set of mutants subsumed (as strings).
-     * @returns a list of all mutant IDs (as Integers) sorted in order
-     */
-    private static List<Integer> mutantSort(Map<String, Set<String>> testToMutantMethod) {
-        List<Integer> sortedMutantListFinalMethod = testToMutantMethod.values().stream()
-                .flatMap(valueSet -> valueSet.stream())
-                .map(valueAsString -> Integer.parseInt(valueAsString))
-                .sorted()
-                .distinct()
-                .collect(Collectors.toList());
-        return sortedMutantListFinalMethod;
-    }
-
-    /**
-     * Reads a mapping of tests to all mutants
-     *
-     * @param testToMutantMethod A map from tests to mutants killed
-     * @requires passed in map and its member set should not be empty
-     * to the set of mutants subsumed (as strings).
-     * @returns a list of all mutant IDs (as Integers) sorted in order
+     * @return a list of all mutant IDs (as Integers) sorted in order
      */
     private static List<String> sortMutants(Map<String, Set<String>> mutantToTest) {
         List<String> sortedMutantList = new ArrayList<>(mutantToTest.keySet());
         sortedMutantList.sort(Comparator.naturalOrder());
         return sortedMutantList;
     }
-
 
 
     /**
@@ -239,10 +117,8 @@ public class Counter {
      *                                  a list of their subsumed mutants (as Strings)
      * @param dominatorFile             an array of project information used to name the exported dominator
      *                                  graph
-     * @requires passed in map and its member set should not be empty
-     * to the set of mutants subsumed (as strings).
      */
-    private static void export(List<Integer> sortedMutantListFinal,
+    private static void export(List<String> sortedMutantListFinal,
                                Map<String, Set<String>> dominatorToSubsumedMethod,
                                Path[] dominatorFile) throws IOException {
 
@@ -250,9 +126,9 @@ public class Counter {
 
         //print the header
         String firstRow = ",";
-        for (Integer mutantNumber : sortedMutantListFinal) {
+        for (String mutantNumber : sortedMutantListFinal) {
 
-            firstRow += mutantNumber.toString();
+            firstRow += mutantNumber;
             firstRow += ",";
         }
 
@@ -261,11 +137,11 @@ public class Counter {
 
 
         //going through all mutants
-        for (Integer counter : sortedMutantListFinal) {
-            String row = counter.toString() + ",";
-            for (Integer innerCounter : sortedMutantListFinal) {
-                if (dominatorToSubsumedMethod.containsKey(counter.toString())) {
-                    if (dominatorToSubsumedMethod.get(counter.toString()).contains(innerCounter.toString())) {
+        for (String counter : sortedMutantListFinal) {
+            String row = counter + ",";
+            for (String innerCounter : sortedMutantListFinal) {
+                if (dominatorToSubsumedMethod.containsKey(counter)) {
+                    if (dominatorToSubsumedMethod.get(counter).contains(innerCounter)) {
                         row += innerCounter + ",";
                     } else {
                         row += ",";
