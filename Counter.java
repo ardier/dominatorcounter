@@ -22,7 +22,7 @@ public class Counter {
 
         //adding the mutant records from kill map
         var killMapPath = args[0];
-        //Project/Version/Trigger/
+        //Generating the output path based on Project Name/Version/Trigger Setting/
         var dominatorFile = Paths.get("graphs", args[1] + "-" + args[2] + "-" + args[3] + ".csv");
 
         Map<Integer, Set<Integer>> mutantToTest = readKillMap(killMapPath);
@@ -32,7 +32,7 @@ public class Counter {
 
 
         //map dominator mutants to subsumed mutants
-        Map<Integer, Set<Integer>> domToSub = domToSub(mutantToTest);
+        Map<Integer, Set<Integer>> domToSub = dominatorToSubsumed(mutantToTest);
 
         //printing the output
         export(sortedMutantList, domToSub, dominatorFile);
@@ -75,13 +75,14 @@ public class Counter {
     /**
      * Reads a mapping of mutants to tests failed for those mutants
      *
-     * @param mutantToTestMethod A map from mutants to tests failed
-     * @return a mapping from dominator mutant IDs (as integers) that make a larger set of tests fail to the set
-     * of mutants (as integers) also known as subsumed mutants that fail a subset of the same tests
+     * @param mutantToTestMethod A map from mutants to tests failed for those mutants
+     * @return a mapping from mutant IDs (as integers) for mutants
+     * that make a larger set of tests fail (dominator mutants) to the set
+     * of mutants (as integers) that fail a subset of the same tests (subsumed mutants)
      */
 
 
-    private static HashMap<Integer, Set<Integer>> domToSub(Map<Integer, Set<Integer>> mutantToTestMethod) {
+    private static HashMap<Integer, Set<Integer>> dominatorToSubsumed(Map<Integer, Set<Integer>> mutantToTestMethod) {
         HashMap<Integer, Set<Integer>> domToSub = new HashMap<>();
         for (Integer m : mutantToTestMethod.keySet()) {
             for (Integer n : mutantToTestMethod.keySet()) {
@@ -123,12 +124,12 @@ public class Counter {
      * Writes csv file
      *
      * @param sortedMutantListFinal     a list of all mutant IDs (as integers) sorted in order
-     * @param dominatorToSubsumedMethod a mapping from dominator mutant IDs (as integers)
-     *                                  that make a larger set of tests fail to the set
-     *                                  of mutants (as integers) also known as subsumed mutants that fail
-     *                                  a subset of the same tests
-     * @param dominatorFile             a path for the generated csv file based on project name, version, and whether
-     *                                  the test is triggering or non-triggering
+     * @param dominatorToSubsumedMethod a mapping from mutant IDs (as integers) for mutants
+     *                                  that make a larger set of tests fail (dominator mutants) to the set
+     *                                  of mutants (as integers) that fail a subset of the same
+     *                                  tests (subsumed mutants)
+     * @param dominatorFile             a path for the generated csv file based on project name,
+     *                                  version, and whether the test is triggering or non-triggering
      */
     private static void export(List<Integer> sortedMutantListFinal,
                                Map<Integer, Set<Integer>> dominatorToSubsumedMethod,
