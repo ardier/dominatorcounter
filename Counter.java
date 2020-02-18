@@ -21,18 +21,18 @@ public class Counter {
 
 
         //adding the mutant records from kill map
-        String killMapPath = args[0];
+        var killMapPath = args[0];
         //Project/Version/Trigger/
-        Path[] dominatorFile = {Paths.get(args[1]), Paths.get(args[2]), Paths.get(args[3])};
+        var dominatorFile = Paths.get("graphs", args[1] + "-" + args[2] + "-" + args[3] + ".csv");
 
-        Map<String, Set<String>> mutantToTest = readKillMap(killMapPath);
+        Map<Integer, Set<Integer>> mutantToTest = readKillMap(killMapPath);
 
         //sort mutants alphabetically
         List<Integer> sortedMutantList = sortMutants(mutantToTest);
 
 
         //map dominator mutants to subsumed mutants
-        Map<String, Set<String>> domToSub = domToSub(mutantToTest);
+        Map<Integer, Set<Integer>> domToSub = domToSub(mutantToTest);
 
         //printing the output
         export(sortedMutantList, domToSub, dominatorFile);
@@ -44,25 +44,27 @@ public class Counter {
      * Reads a `killMap.csv`-formatted file as a map from tests to mutants killed.
      *
      * @param path The filesystem path to the file to read.
-     * @return A mapping from test IDs (as strings) to the set of mutants kill (as strings).
+     * @return A mapping from test IDs (as integers) to the set of mutants kill (as integers).
      */
-    private static HashMap<String, Set<String>> readKillMap(String path) throws IOException {
-        HashMap<String, Set<String>> mutantToTest = new HashMap<>();
-        BufferedReader scanner = new BufferedReader(new FileReader(path));
+    private static HashMap<Integer, Set<Integer>> readKillMap(String path) throws IOException {
+        HashMap<Integer, Set<Integer>> mutantToTest = new HashMap<>();
+        var scanner = new BufferedReader(new FileReader(path));
 
         //parsing a CSV file into Scanner class constructor
         //var sc = new Scanner((scanner));
         //sc.useDelimiter(";");   //sets the delimiter pattern
-        String lineTracker = scanner.readLine();
+        var lineTracker = scanner.readLine();
         while ((lineTracker = scanner.readLine()) != null)  //returns a boolean value
         {
             String[] lineKeeper = lineTracker.split(",");
-            if (mutantToTest.containsKey(lineKeeper[1])) {
-                mutantToTest.get(lineKeeper[1]).add(lineKeeper[0]);
+            int test = Integer.parseInt(lineKeeper[0]);
+            int mutant = Integer.parseInt(lineKeeper[1]);
+            if (mutantToTest.containsKey(mutant)) {
+                mutantToTest.get(mutant).add(test);
             } else {
-                Set<String> setter = new HashSet<>();
-                mutantToTest.put(lineKeeper[1], setter);
-                mutantToTest.get(lineKeeper[1]).add(lineKeeper[0]);
+                Set<Integer> setter = new HashSet<>();
+                mutantToTest.put(Integer.parseInt(lineKeeper[1]), setter);
+                mutantToTest.get(mutant).add(test);
             }
         }
 
@@ -74,14 +76,15 @@ public class Counter {
      * Reads a mapping of mutants to tests failed for those mutants
      *
      * @param mutantToTestMethod A map from mutants to tests failed
-     * @return a mapping from dominator mutant IDs (as Strings) to the set of mutants subsumed (as strings).
+     * @return a mapping from dominator mutant IDs (as integers) that make a larger set of tests fail to the set
+     * of mutants (as integers) also known as subsumed mutants that fail a subset of the same tests
      */
 
 
-    private static HashMap<String, Set<String>> domToSub(Map<String, Set<String>> mutantToTestMethod) {
-        HashMap<String, Set<String>> domToSub = new HashMap<>();
-        for (String m : mutantToTestMethod.keySet()) {
-            for (String n : mutantToTestMethod.keySet()) {
+    private static HashMap<Integer, Set<Integer>> domToSub(Map<Integer, Set<Integer>> mutantToTestMethod) {
+        HashMap<Integer, Set<Integer>> domToSub = new HashMap<>();
+        for (Integer m : mutantToTestMethod.keySet()) {
+            for (Integer n : mutantToTestMethod.keySet()) {
                 if (mutantToTestMethod.get(m).containsAll(mutantToTestMethod.get(n))) {
                     if (!domToSub.containsKey(m)) {
                         domToSub.put(m, new HashSet<>());
@@ -97,15 +100,13 @@ public class Counter {
     /**
      * Reads a mapping of mutants to tests failed
      *
-     * @param mutantToTest A map from mutants to tests failed
-     *                     to the set of mutants subsumed (as strings).
-     * @return a list of all mutant IDs (as Integers) sorted in order
+     * @param mutantToTest A map from mutants to the tests failed for those mutants
+     * @return a list of all mutant IDs (as integers) sorted in numeric order
      */
-    private static List<Integer> sortMutants(Map<String, Set<String>> mutantToTest) {
+    private static List<Integer> sortMutants(Map<Integer, Set<Integer>> mutantToTest) {
         //List<String> sortedMutantList = new ArrayList<>(mutantToTest.keySet());
         //sortedMutantList.sort(Comparator.naturalOrder());
         List<Integer> sortedMutantList = mutantToTest.keySet().stream()
-                .map(valueAsString -> Integer.parseInt(valueAsString))
                 .sorted()
                 .distinct()
                 .collect(Collectors.toList());
@@ -116,57 +117,55 @@ public class Counter {
 
 
     /**
-     * Reads a list of all mutant IDs (as Integers) sorted in order
-     * and a mapping of all dominator mutants (as strings)
+     * Reads a list of all mutant IDs (as integers) sorted in order
+     * and a mapping of all dominator mutants (as integers)
      * to their subsumed mutants (as strings).
      * Writes csv file
      *
-     * @param sortedMutantListFinal     a list of all mutant IDs (as Integers) sorted in order
-     * @param dominatorToSubsumedMethod a mapping of dominator mutants (as Strings) to
-     *                                  a list of their subsumed mutants (as Strings)
-     * @param dominatorFile             an array of project information used to name the exported dominator
-     *                                  graph
+     * @param sortedMutantListFinal     a list of all mutant IDs (as integers) sorted in order
+     * @param dominatorToSubsumedMethod a mapping from dominator mutant IDs (as integers)
+     *                                  that make a larger set of tests fail to the set
+     *                                  of mutants (as integers) also known as subsumed mutants that fail
+     *                                  a subset of the same tests
+     * @param dominatorFile             a path for the generated csv file based on project name, version, and whether
+     *                                  the test is triggering or non-triggering
+     *
      */
     private static void export(List<Integer> sortedMutantListFinal,
-                               Map<String, Set<String>> dominatorToSubsumedMethod,
-                               Path[] dominatorFile) throws IOException {
+                               Map<Integer, Set<Integer>> dominatorToSubsumedMethod,
+                               Path dominatorFile) throws IOException {
 
         ArrayList<String> dominatorGraph = new ArrayList<>();
 
-        //print the header
-        String firstRow = ",";
-        for (Integer mutantNumber : sortedMutantListFinal) {
-
-            firstRow += mutantNumber.toString();
-            firstRow += ",";
-        }
-
-
-        dominatorGraph.add(firstRow);
+        var firstRow = sortedMutantListFinal.stream()
+                .map(i -> i.toString())
+                .collect(Collectors.joining(","));
+        dominatorGraph.add("," + firstRow + ",");
 
 
         //going through all mutants
-        for (Integer counter : sortedMutantListFinal) {
-            String row = counter + ",";
-            for (Integer innerCounter : sortedMutantListFinal) {
-                if (dominatorToSubsumedMethod.containsKey(counter.toString())) {
-                    if (dominatorToSubsumedMethod.get(counter.toString()).contains(innerCounter.toString())) {
-                        row += innerCounter.toString() + ",";
+        for (var counter : sortedMutantListFinal) {
+            var rowBuilder = new StringBuilder(counter + ",");
+
+            for (var innerCounter : sortedMutantListFinal) {
+                if (dominatorToSubsumedMethod.containsKey(counter)) {
+                    if (dominatorToSubsumedMethod.get(counter).contains(innerCounter)) {
+                        rowBuilder.append(innerCounter + ",");
                     } else {
-                        row += ",";
+                        rowBuilder.append(",");
                     }
                 } else {
-                    row += ",";
+                    rowBuilder.append(",");
                 }
             }
 
-            dominatorGraph.add(row);
+            dominatorGraph.add(rowBuilder.toString());
 
         }
-        String fileAddress = "graphs/" + dominatorFile[0] + "-" + dominatorFile[1] + "-" + dominatorFile[2] + ".csv";
+
 
         //Saving the final graph
-        Files.write(Paths.get(fileAddress), dominatorGraph, StandardCharsets.UTF_8);
+        Files.write(dominatorFile, dominatorGraph, StandardCharsets.UTF_8);
 
     }
 
