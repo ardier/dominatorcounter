@@ -129,7 +129,6 @@ public class Counter {
      *                                  a subset of the same tests
      * @param dominatorFile             a path for the generated csv file based on project name, version, and whether
      *                                  the test is triggering or non-triggering
-     *
      */
     private static void export(List<Integer> sortedMutantListFinal,
                                Map<Integer, Set<Integer>> dominatorToSubsumedMethod,
