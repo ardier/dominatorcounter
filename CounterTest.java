@@ -21,7 +21,10 @@ public class CounterTest {
 
     /**
      * A randomly generated stress test to see if the program runs on random input
-     *
+     * @author <ardier@cs.washington.edu>Ardi Madadi</ardier@cs.washington.edu>
+     * @version 0.16
+     * @since 0.01
+     * @param
      * @throws IOException when it is not able to read or save the file
      */
 
