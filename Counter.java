@@ -59,13 +59,11 @@ public class Counter {
             String[] lineKeeper = lineTracker.split(",");
             int test = Integer.parseInt(lineKeeper[0]);
             int mutant = Integer.parseInt(lineKeeper[1]);
-            if (mutantToTest.containsKey(mutant)) {
-                mutantToTest.get(mutant).add(test);
-            } else {
+            if (!mutantToTest.containsKey(mutant)) {
                 Set<Integer> setter = new HashSet<>();
                 mutantToTest.put(Integer.parseInt(lineKeeper[1]), setter);
-                mutantToTest.get(mutant).add(test);
             }
+            mutantToTest.get(mutant).add(test);
         }
 
         scanner.close();
