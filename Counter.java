@@ -8,7 +8,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * A Counter maps dominator mutants to subsumed mutants exports the outcome into a CSV file
+ * A Counter maps mutants that make a larger set of tests fail (dominator mutants) to the set
+ * of mutants that fail a subset of the same tests (subsumed mutants)
+ * and exports the outcome into a CSV file
+ *
+ * @author <ardier@cs.washington.edu>Ardi Madadi</ardier@cs.washington.edu>
+ * @version 0.16
+ * @since 0.01
  */
 public class Counter {
 
